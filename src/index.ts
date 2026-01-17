@@ -13,8 +13,8 @@ const CONFIG = {
     "https://bsc-dataseed3.binance.org", // Backup 3
   ],
   CHAIN_ID: "56", // BNB Smart Chain (BSC)
-  START_BLOCK: 58054338, // Block awal untuk mulai scanning (range kecil untuk test)
-  END_BLOCK: 58240771, // Block akhir untuk scanning
+  START_BLOCK: 58038338, // Block awal untuk mulai scanning (range kecil untuk test)
+  END_BLOCK: 73261345, // Block akhir untuk scanning
   DB_PATH: "./registrations.db",
   CSV_PATH: "./registrations.csv",
   BATCH_SIZE: 1000, // Jumlah blocks per batch
@@ -35,7 +35,7 @@ interface RegistrationEvent {
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxRetries: number = CONFIG.MAX_RETRIES,
-  baseDelay: number = 1000
+  baseDelay: number = 1000,
 ): Promise<T> {
   let lastError: any;
 
@@ -51,7 +51,7 @@ async function retryWithBackoff<T>(
 
       const delay = baseDelay * Math.pow(2, attempt);
       console.log(
-        `   ⚠️  Attempt ${attempt + 1} failed, retrying in ${delay}ms...`
+        `   ⚠️  Attempt ${attempt + 1} failed, retrying in ${delay}ms...`,
       );
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
@@ -119,7 +119,7 @@ async function getRegistrationEvents(): Promise<RegistrationEvent[]> {
           .filter(Boolean);
         if (signatures.length > 0) {
           console.log(
-            `   📝 Event signatures in this batch: ${signatures.join(", ")}`
+            `   📝 Event signatures in this batch: ${signatures.join(", ")}`,
           );
         }
 
@@ -134,7 +134,7 @@ async function getRegistrationEvents(): Promise<RegistrationEvent[]> {
               console.log(
                 `   ⚠️  Skipping log with invalid topics: ${
                   logData.topics?.length || 0
-                }`
+                }`,
               );
               continue; // Skip this log
             }
@@ -142,7 +142,7 @@ async function getRegistrationEvents(): Promise<RegistrationEvent[]> {
             // Check if this is our event signature
             if (logData.topics[0] !== eventTopic) {
               console.log(
-                `   ⚠️  Skipping log with wrong signature: ${logData.topics[0]}`
+                `   ⚠️  Skipping log with wrong signature: ${logData.topics[0]}`,
               );
               continue;
             }
@@ -164,7 +164,7 @@ async function getRegistrationEvents(): Promise<RegistrationEvent[]> {
               if (data.length < 130) {
                 // 0x + 64 + 64 bytes
                 console.log(
-                  `   ⚠️  Skipping log with insufficient data: ${data.length} chars`
+                  `   ⚠️  Skipping log with insufficient data: ${data.length} chars`,
                 );
                 continue;
               }
@@ -213,7 +213,7 @@ async function getRegistrationEvents(): Promise<RegistrationEvent[]> {
           console.log(
             `   💾 Saved ${inserted} events to database (${
               batchEvents.length - inserted
-            } duplicates skipped)`
+            } duplicates skipped)`,
           );
         }
 
@@ -234,14 +234,14 @@ async function getRegistrationEvents(): Promise<RegistrationEvent[]> {
       } catch (error) {
         console.error(
           `   ❌ Error scanning blocks ${currentBlock}-${toBlock}:`,
-          error
+          error,
         );
 
         // Jika retry gagal, coba switch RPC
         currentRpcIndex = (currentRpcIndex + 1) % CONFIG.RPC_URLS.length;
         web3 = createWeb3Instance(CONFIG.RPC_URLS[currentRpcIndex]);
         console.log(
-          `   🔄 Switching to RPC: ${CONFIG.RPC_URLS[currentRpcIndex]}`
+          `   🔄 Switching to RPC: ${CONFIG.RPC_URLS[currentRpcIndex]}`,
         );
 
         // Tunggu sebelum retry dengan RPC baru
@@ -251,7 +251,7 @@ async function getRegistrationEvents(): Promise<RegistrationEvent[]> {
     }
 
     console.log(
-      `\n✅ Scanning complete! Total events found: ${allEvents.length}\n`
+      `\n✅ Scanning complete! Total events found: ${allEvents.length}\n`,
     );
     return allEvents;
   } catch (error: any) {
@@ -305,7 +305,7 @@ async function saveBatchToSQLite(events: RegistrationEvent[]): Promise<number> {
       event.blockNumber,
       event.transactionHash,
       event.logIndex,
-      event.timestamp
+      event.timestamp,
     );
     if (result.changes && result.changes > 0) inserted++;
   }
@@ -360,7 +360,7 @@ async function displayStatistics(events: RegistrationEvent[]): Promise<void> {
   const uniqueReferrers = new Set(
     events
       .map((e) => e.referrer)
-      .filter((r) => r !== "0x0000000000000000000000000000000000000000")
+      .filter((r) => r !== "0x0000000000000000000000000000000000000000"),
   );
   console.log(`   Unique Referrers: ${uniqueReferrers.size}`);
 
@@ -394,7 +394,7 @@ async function displayStatistics(events: RegistrationEvent[]): Promise<void> {
       }
       return acc;
     },
-    {}
+    {},
   );
 
   const topReferrers = Object.entries(referrerCounts)
@@ -411,7 +411,7 @@ async function displayStatistics(events: RegistrationEvent[]): Promise<void> {
 
   // Registrations without referrer (root accounts)
   const rootAccounts = events.filter(
-    (e) => e.referrer === "0x0000000000000000000000000000000000000000"
+    (e) => e.referrer === "0x0000000000000000000000000000000000000000",
   );
   console.log(`\nRoot Accounts (No Referrer): ${rootAccounts.length}`);
 
@@ -420,7 +420,7 @@ async function displayStatistics(events: RegistrationEvent[]): Promise<void> {
 
 // Fungsi untuk generate final reports (CSV dan summary)
 async function generateFinalReports(
-  events: RegistrationEvent[]
+  events: RegistrationEvent[],
 ): Promise<void> {
   console.log("\nGenerating final reports...");
 
@@ -442,7 +442,7 @@ function exportSummaryJSON(events: RegistrationEvent[]): void {
       }
       return acc;
     },
-    {}
+    {},
   );
 
   const summary = {
@@ -451,7 +451,7 @@ function exportSummaryJSON(events: RegistrationEvent[]): void {
     uniqueReferrers: new Set(
       events
         .map((e) => e.referrer)
-        .filter((r) => r !== "0x0000000000000000000000000000000000000000")
+        .filter((r) => r !== "0x0000000000000000000000000000000000000000"),
     ).size,
     topReferrers: Object.entries(referrerCounts)
       .sort(([, a], [, b]) => b - a)
@@ -463,7 +463,7 @@ function exportSummaryJSON(events: RegistrationEvent[]): void {
   fs.writeFileSync(
     "./registrations_summary.json",
     JSON.stringify(summary, null, 2),
-    "utf-8"
+    "utf-8",
   );
 
   console.log("Summary exported to: registrations_summary.json");
@@ -502,7 +502,7 @@ async function main() {
 
     console.log("Done! Check the following files:");
     console.log(
-      `   - ${CONFIG.DB_PATH} (SQLite database - updated incrementally)`
+      `   - ${CONFIG.DB_PATH} (SQLite database - updated incrementally)`,
     );
     console.log(`   - ${CONFIG.CSV_PATH} (CSV export)`);
     console.log(`   - registrations_summary.json (Summary)`);
@@ -513,10 +513,10 @@ async function main() {
     console.error("2. Verify contract address is correct");
     console.error("3. Make sure you have internet connection");
     console.error(
-      "4. Check if START_BLOCK and END_BLOCK are correct (contract deployment block range)"
+      "4. Check if START_BLOCK and END_BLOCK are correct (contract deployment block range)",
     );
     console.error(
-      "5. If rate limited, increase delay between requests or reduce BATCH_SIZE"
+      "5. If rate limited, increase delay between requests or reduce BATCH_SIZE",
     );
     process.exit(1);
   }
